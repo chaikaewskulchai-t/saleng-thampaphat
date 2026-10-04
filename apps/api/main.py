@@ -120,11 +120,16 @@ def haversine_km(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
         * math.cos(math.radians(lat2))
         * math.sin(dlon / 2) ** 2
     )
+    a = min(1.0, max(0.0, a))
     c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
     return radius * c
 
 
-def sanitize_request(record: dict[str, Any]) -> dict[str, Any]:
+def sanitize_request(
+    record: dict[str, Any],
+    saleng_lat: float = SALENG_LOCATION['lat'],
+    saleng_lng: float = SALENG_LOCATION['lng'],
+) -> dict[str, Any]:
     public = {
         'request_id': record['request_id'],
         'scrap_type': record['scrap_type'],
@@ -132,8 +137,8 @@ def sanitize_request(record: dict[str, Any]) -> dict[str, Any]:
         'status': record['status'],
         'distance_km': round(
             haversine_km(
-                SALENG_LOCATION['lat'],
-                SALENG_LOCATION['lng'],
+                saleng_lat,
+                saleng_lng,
                 record['geo_point']['lat'],
                 record['geo_point']['lng'],
             ),
@@ -179,7 +184,7 @@ def get_nearby_requests(
     for record in REQUESTS.values():
         dist = haversine_km(lat, lng, record['geo_point']['lat'], record['geo_point']['lng'])
         if dist <= 5:
-            public_record = sanitize_request(record)
+            public_record = sanitize_request(record, saleng_lat=lat, saleng_lng=lng)
             nearby.append(
                 NearbyRequest(
                     request_id=record['request_id'],
@@ -228,7 +233,7 @@ def accept_request(request_id: str, payload: AcceptRequestPayload) -> dict[str, 
         record['accepted_by'] = payload.saleng_id
         record['accepted_at'] = datetime.now(timezone.utc)
 
-        # REQ-BR-002: preserve a status change history to support first-come auditability.
+        # REQ-BR-002: record the winning acceptance as the sole status transition.
         request_history = {
             'request_id': request_id,
             'old_status': old_status,
@@ -236,8 +241,7 @@ def accept_request(request_id: str, payload: AcceptRequestPayload) -> dict[str, 
             'changed_by': payload.saleng_id,
             'changed_at': record['accepted_at'],
         }
-        if request_history['request_id'] in REQUESTS:
-            REQUESTS[request_id]['history'] = request_history
+        record.setdefault('history', []).append(request_history)
 
         return {
             'request_id': record['request_id'],

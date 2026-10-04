@@ -45,3 +45,31 @@ AI จะเพิ่มบันทึกให้เองเมื่อใ�
 - สิ่งที่ AI เกือบต้องเดาแต่ถามแทน: ไม่มี เพราะ task นี้ไม่มี Open Question ใดที่ต้องเดาเพิ่มเติม; ได้ตรวจแล้วว่าความซ้ำซ้อนของ model ให้ใช้คีย์ dict-backed records และ history structure เหมาะสมตาม spec
 - ข้อสรุป: task T-02 มีสถานะ "เสร็จ รอทีมตรวจ" และไม่ทำ task ขั้นถัดไปโดยอัตโนมัติตามกติกา
 
+## #8 | 2026-10-04 | VS Code / Copilot | /implement T-03 specs/002-route/tasks.md
+- AI รายงาน: ทำให้ระยะทางที่ API ส่งกลับมาคำนวณจากพิกัดซาเล้งเดียวกับที่ใช้กรองรายการและเรียงลำดับ พร้อมครอบคลุมกรณีขอบเชิงตัวเลขของ Haversine
+- ไฟล์ที่สร้างหรือแก้: apps/api/main.py, apps/api/tests/test_route_features.py, specs/002-route/tasks.md
+- ผล test: `cd apps/api && PYTHONPATH=. pytest tests/test_route_features.py -q` -> 8 passed in 2.53s; Problems ตรวจ apps/api ทั้งสองไฟล์ไม่พบข้อผิดพลาด
+- REQ-CON-002: endpoint nearby ใช้การคำนวณ Haversine ภายในและไม่เรียก Maps API จึงไม่ใช้ quota ของ Maps API ในการกรองรายการ
+- สิ่งที่ AI เกือบต้องเดาแต่ถามแทน: ไม่ได้เพิ่มการตรวจช่วง latitude/longitude เพราะ spec และ plan ไม่กำหนดพฤติกรรมสำหรับพิกัดนอกช่วง; ใช้ validation ตัวเลขของ FastAPI ตามที่มีอยู่
+- ข้อสรุป: task T-03 มีสถานะ "เสร็จ รอทีมตรวจ"; ไม่ได้เริ่ม T-04
+
+## #9 | 2026-10-04 | VS Code / Copilot | /implement T-04 specs/002-route/tasks.md
+- AI รายงาน: คงการล็อกการรับงานแบบ first-come ให้มีผู้ชนะเพียงรายเดียว เก็บประวัติ transition เมื่อรับงานสำเร็จเท่านั้น และตรวจการเปิดเผยที่อยู่หลังรับงาน
+- ไฟล์ที่สร้างหรือแก้: apps/api/main.py, apps/api/tests/test_route_features.py, specs/002-route/tasks.md
+- ผล test: `cd apps/api && PYTHONPATH=. pytest tests/test_route_features.py -q` -> 9 passed in 1.03s; Problems ตรวจ apps/api ทั้งสองไฟล์ไม่พบข้อผิดพลาด
+- REQ-BR-002: ส่วน critical section ของ accept ใช้ ACCEPT_LOCK ป้องกันการรับซ้ำ และเพิ่ม history เฉพาะคำขอที่เปลี่ยนสถานะได้
+- REQ-SEC-002: รายละเอียดที่อยู่ถูกซ่อนก่อนรับงานและ API เปิดเผยหลังสถานะเป็น “มีผู้รับงานแล้ว”
+- ข้อจำกัด: REQUESTS และ status history ยังเป็น in-memory ตาม scaffold ปัจจุบัน ไม่ใช่การบันทึก PostgreSQL แบบถาวร
+- สิ่งที่ AI เกือบต้องเดาแต่ถามแทน: ไม่ได้เปลี่ยนแนวทาง concurrency ไปเป็น distributed database lock เพราะ plan ระบุ lock และสภาพแวดล้อมทดสอบปัจจุบันใช้ in-memory request store
+- ข้อสรุป: task T-04 มีสถานะ "เสร็จ รอทีมตรวจ"; ยังไม่ได้เริ่ม T-05 ถึง T-07 ในรอบนี้ตามขอบเขต /implement ครั้งละหนึ่ง task
+
+## #10 | 2026-10-04 | VS Code / Copilot | /implement T-05 specs/002-route/tasks.md
+- AI รายงาน: สร้างหน้ารายการงานและหน้ารายละเอียดที่อ่าน mock API แสดงเฉพาะงานในรัศมี เรียงตามระยะทาง แสดงประเภท/ราคา และปกปิดบ้านเลขที่ก่อนรับงาน
+- ไฟล์ที่สร้างหรือแก้: apps/web/src/App.jsx, apps/web/src/routeApi.js, apps/web/src/AC-04-01.test.js, specs/002-route/tasks.md
+- ผล test: `node --test src/AC-04-01.test.js` -> 4 passed; `npm run lint` ผ่าน; `npm run build` ผ่าน; ตรวจหน้า browser เห็นรายการ 2 งาน เรียง 0.25 กม. ก่อน 0.83 กม. และเห็นที่อยู่หลังรับงาน
+- REQ-FN-002: `getNearbyRequests` คัดกรองในรัศมีไม่เกิน 5 กม. และเรียงตามระยะ Haversine; หน้าแสดงรายการงาน
+- REQ-FN-001: หน้ารายการและรายละเอียดแสดงประเภทขยะและราคาประเมิน/ราคากลางอ้างอิงตามค่าเดียวที่มีในสัญญาข้อมูล
+- REQ-SEC-002: mock API ส่งที่อยู่/บ้านเลขที่แบบปกปิดก่อนสถานะรับงาน และ UI แสดงข้อมูลจริงหลังรับงานสำเร็จ
+- REQ-QA-002: test ของ mock API ตรวจเวลาการโหลดต่ำกว่า 3 วินาที; ตรวจหน้า browser ยืนยันการ render และ flow ได้
+- สิ่งที่ AI เกือบต้องเดาแต่ถามแทน: ไม่สร้างช่วงราคาแยกจาก `estimated_price` เพราะ spec/สัญญา API มีเฉพาะฟิลด์นี้; ข้อมูล mock ยังเป็น client-side และไม่ใช่การยืนยันความปลอดภัยระดับ production
+- ข้อสรุป: task T-05 มีสถานะ "เสร็จ รอทีมตรวจ"; ยังไม่ได้เริ่ม T-06 หรือ T-07
