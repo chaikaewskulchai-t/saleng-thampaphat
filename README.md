@@ -9,10 +9,17 @@ repo นี้คือ "ตัวทำเอง" มีแต่กติก�
 
 ## ทีม
 
-- ชื่อกลุ่ม:
-- สมาชิก:
-- feature ที่เลือก (UC-xx):
-- เครื่องมือ AI ที่ใช้: (Copilot ใน Codespaces / Claude Code / Cursor)
+- ชื่อกลุ่ม: กลุ่ม 2 (แพลตฟอร์มรับซื้อของเก่า)
+- สมาชิก: สมาชิกกลุ่ม 2
+- feature ที่เลือก (UC-xx): UC-04 การรับงานตามเส้นทาง
+- เครื่องมือ AI ที่ใช้: Copilot in Codespaces
+
+## Stack ที่เลือก
+
+- Frontend: React + Vite + Tailwind CSS
+- Backend: FastAPI (Python)
+- Database: PostgreSQL
+- Runtime: Docker Compose สำหรับ PostgreSQL
 
 ## เริ่มอย่างไร (ขั้น 0 ของบทเรียน)
 
@@ -61,12 +68,32 @@ specs/002-feature/             โครงของ spec.md, .feature, rules.md
 
 ## วิธีรัน
 
-ยังไม่มี คำสั่งติดตั้งและรัน test จะอยู่ใน plan.md ข้อ 2 หลังกลุ่มเลือกเทคโนโลยี และ AI จะสร้างไฟล์จริงใน T-01
-ตัวอย่าง (ถ้าเลือกชุดเดียวกับ repo ตัวทำตาม คือ Python FastAPI + React Tailwind):
-
 ```
-cd backend && pip install -r requirements.txt && pytest -v -k "AC_"
-cd frontend && npm install && npm test
+# Database
+cd /workspaces/saleng-thampaphat
+docker compose up -d postgres
+
+# Backend
+cd /workspaces/saleng-thampaphat/apps/api
+python -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+uvicorn main:app --reload --host 0.0.0.0 --port 8000
+
+# Frontend
+cd /workspaces/saleng-thampaphat/apps/web
+npm install
+npm run dev -- --host 0.0.0.0
+```
+
+```bash
+# ตรวจ build ของ frontend
+cd /workspaces/saleng-thampaphat/apps/web
+npm run build
+
+# ตรวจ syntax ของ backend
+cd /workspaces/saleng-thampaphat
+/home/codespace/.python/current/bin/python -m compileall apps/api
 ```
 
 ## Reflection (เขียนท้ายคาบ 5 บรรทัด)
